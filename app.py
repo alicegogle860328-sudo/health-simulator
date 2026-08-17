@@ -19,6 +19,8 @@ st.markdown("""
 # 初始化暫存記憶體
 if 'history' not in st.session_state:
     st.session_state.history = []
+if 'water_history' not in st.session_state:
+    st.session_state.water_history = []
 if 'water' not in st.session_state:
     st.session_state.water = 0
 if 'last_feedback' not in st.session_state:
@@ -71,10 +73,13 @@ else:
 tdee = bmr * 1.2
 bmi = weight / ((height / 100) ** 2)
 
-today_cal_sum = sum([item['cal'] for item in st.session_state.history if item['cal'] > 0])
+# 動態個人化每日建議飲水量公式 (依身高體重綜合計算)
+recommended_water = max(1500, weight * 35 + (height - 150) * 3)
+
+today_cal_sum = sum([item['cal'] for item in st.session_state.history])
 calorie_surplus = tdee - today_cal_sum
 
-# ==================== 角色外觀與動態身態判定 (男女生各版本：瘦, 正常, 微肉) ====================
+# ==================== 角色外觀與動態身態判定 ====================
 if gender == "女":
     if bmi < 18.5:
         avatar_img = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
@@ -165,7 +170,7 @@ with tab1:
             "fat": c_fat
         })
         
-        new_total = sum([item['cal'] for item in st.session_state.history if item['cal'] > 0])
+        new_total = sum([item['cal'] for item in st.session_state.history])
         if new_total > tdee + 200:
             st.session_state.last_feedback = f"哇！熱量超載囉！『{char_name}』的防禦力快被油膩吞沒了，要控制囉！"
         elif new_total >= tdee - 100:
@@ -188,26 +193,25 @@ with tab2:
         
         filter_meal = st.selectbox("篩選想查看的餐別", ["全部"] + list(df["meal"].unique()))
         if filter_meal != "全部":
-            df_filtered = df[(df["meal"] == filter_meal) & (df["cal"] > 0)]
+            df_filtered = df[df["meal"] == filter_meal]
         else:
-            df_filtered = df[df["cal"] > 0]
+            df_filtered = df
 
-        if not df_filtered.empty:
-            st.write(f"目前顯示【{filter_meal}】的熱量分佈圖：")
-            chart_df = df_filtered.copy()
-            chart_df['short_name'] = chart_df['food'].apply(lambda x: x.split(' (')[0] if ' (' in x else x)
-            
-            chart = alt.Chart(chart_df).mark_bar(color='#ff4b4b', cornerRadiusTopLeft=4, cornerRadiusTopRight=4).encode(
-                x=alt.X('short_name:N', sort=None, title='食物名稱', axis=alt.Axis(labelAngle=-25, labelLimit=250)),
-                y=alt.Y('cal:Q', title='熱量 (大卡)'),
-                tooltip=['food', 'cal', 'pro', 'carb', 'fat']
-            ).properties(height=350)
-            
-            st.altair_chart(chart, use_container_width=True)
-        else:
-            st.info("目前尚無熱量數據可供繪製圖表。")
+        st.write(f"目前顯示【{filter_meal}】的熱量分佈圖：")
         
-        total_cal_today = sum([item['cal'] for item in st.session_state.history if item['cal'] > 0])
+        chart_df = df_filtered.copy()
+        chart_df['short_name'] = chart_df['food'].apply(lambda x: x.split(' (')[0] if ' (' in x else x)
+        
+        # 透過 axis=alt.Axis(titleAngle=0) 將 Y 軸標題「熱量 (大卡)」轉正
+        chart = alt.Chart(chart_df).mark_bar(color='#ff4b4b', cornerRadiusTopLeft=4, cornerRadiusTopRight=4).encode(
+            x=alt.X('short_name:N', sort=None, title='食物名稱', axis=alt.Axis(labelAngle=-25, labelLimit=250)),
+            y=alt.Y('cal:Q', title='熱量 (大卡)', axis=alt.Axis(titleAngle=0, titleAnchor='end', titleY=-10)),
+            tooltip=['food', 'cal', 'pro', 'carb', 'fat']
+        ).properties(height=350)
+        
+        st.altair_chart(chart, use_container_width=True)
+        
+        total_cal_today = df["cal"].sum()
         st.info(f"💡 系統總結：今日累計攝取 **{total_cal_today} 大卡** (目標 TDEE：{tdee:.0f} 大卡)")
         
         if total_cal_today > tdee:
@@ -217,48 +221,47 @@ with tab2:
     else:
         st.info("目前還沒有資料，請先至『智能食物搜尋與三餐記錄』分頁新增食物！")
 
-# --------- 分頁三：水分追蹤 ---------
+# --------- 分頁三：水分與日常追蹤 ---------
 with tab3:
     st.subheader("💧 每日水分攝取量追蹤 (Water Tracker)")
-    st.write(f"目前已補充水分：**{st.session_state.water} c.c.** (建議每日至少 2000 c.c.)")
+    st.info(f"💡 根據您的身高 (**{height} cm**) 與體重 (**{weight} kg**) 計算，今日個人化建議飲水量為：**{recommended_water:.0f} c.c.** (公式：體重×35 + (身高-150)×3)")
+    
+    st.write(f"目前已補充水分：**{st.session_state.water} c.c.** / 目標 **{recommended_water:.0f} c.c.**")
     
     col_w1, col_w2, col_w3 = st.columns(3)
     if col_w1.button("💧 喝一杯水 (+250 c.c.)"):
         st.session_state.water += 250
-        st.session_state.history.append({
+        st.session_state.water_history.append({
             "date": str(datetime.date.today()),
-            "meal": "水分補充",
-            "food": "水 (+250 c.c.)",
-            "cal": 0,
-            "pro": 0.0,
-            "carb": 0.0,
-            "fat": 0.0
+            "action": "喝一杯水",
+            "amount": "250 c.c.",
+            "total_water": f"{st.session_state.water} c.c."
         })
         st.success("成功記錄 250 c.c. 水分！")
         st.rerun()
     if col_w2.button("🚰 大口灌水 (+500 c.c.)"):
         st.session_state.water += 500
-        st.session_state.history.append({
+        st.session_state.water_history.append({
             "date": str(datetime.date.today()),
-            "meal": "水分補充",
-            "food": "水 (+500 c.c.)",
-            "cal": 0,
-            "pro": 0.0,
-            "carb": 0.0,
-            "fat": 0.0
+            "action": "大口灌水",
+            "amount": "500 c.c.",
+            "total_water": f"{st.session_state.water} c.c."
         })
         st.success("成功記錄 500 c.c. 水分！")
         st.rerun()
     if col_w3.button("🔄 重置水分歸零"):
         st.session_state.water = 0
-        st.success("水分已重置歸零！")
+        st.session_state.water_history = []
+        st.success("水分與飲水紀錄已重置歸零！")
         st.rerun()
         
-    if st.session_state.water < 2000:
+    if st.session_state.water < recommended_water:
         st.warning("⚠️ 警告：角色出現『缺水 Debuff』，代謝速度下降中，請趕快多喝水！")
     else:
         st.success("🌟 狀態加成：水分充足，獲得『水潤新陳代謝 Buff』！")
 
-    if st.session_state.history:
-        st.write("### 📋 飲食紀錄")
-        st.dataframe(pd.DataFrame(st.session_state.history), use_container_width=True)
+    st.write("### 📋 飲水紀錄")
+    if st.session_state.water_history:
+        st.dataframe(pd.DataFrame(st.session_state.water_history), use_container_width=True)
+    else:
+        st.info("目前尚無飲水紀錄，點擊上方按鈕開始記錄水分吧！")
