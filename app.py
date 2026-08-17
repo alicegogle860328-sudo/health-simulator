@@ -3,13 +3,15 @@ import pandas as pd
 import datetime
 
 # 設定網頁基本排版
-st.set_page_config(page_title="身態模擬器 - RPG 健康養成", page_icon="🎮", layout="wide")
+st.set_page_config(page_title="身態模擬器", page_icon="🎮", layout="wide")
 
-# 自訂介面美化樣式 (科技感與乾淨視覺)
+# 自訂高對比美化樣式 (徹底解決夜間模式字體看不見與數字過大的問題)
 st.markdown("""
     <style>
-    .main { background-color: #f4f6f9; }
-    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .main { background-color: var(--background-color); }
+    .stMetric { background-color: var(--secondary-background-color); padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    /* 強制設定全域文字與標題顏色，確保深淺色模式皆清晰可見 */
+    h1, h2, h3, h4, h5, h6, p, span, label, div { color: var(--text-color) !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -19,14 +21,12 @@ if 'history' not in st.session_state:
 if 'water' not in st.session_state:
     st.session_state.water = 0
 
-st.title("🌱 角色扮演身態模擬器 (RPG Health Simulator)")
-st.write("結合 5000+ 筆大數據食物資料庫與關鍵字搜尋的健康管理系統")
+# 1. 精簡標題 (刪除副標題)
+st.title("🌱 身態模擬器")
 
 # ==================== 模擬 5000+ 筆大數據食物資料庫 ====================
-# 實務上你可以把這部分換成 pd.read_csv('your_food_database.csv') 載入完整 5000 筆資料
 @st.cache_data
 def load_large_food_database():
-    # 這裡用範例資料模擬龐大資料庫，欄位包含：品名、熱量、蛋白質、碳水、脂肪
     data = [
         {"name": "珍珠奶茶 (700cc 微糖)", "cal": 650, "pro": 2, "carb": 85, "fat": 15},
         {"name": "炸雞排", "cal": 600, "pro": 35, "carb": 30, "fat": 38},
@@ -39,7 +39,6 @@ def load_large_food_database():
         {"name": "水餃 (10顆)", "cal": 500, "pro": 20, "carb": 60, "fat": 20},
         {"name": "茶葉蛋 (1顆)", "cal": 75, "pro": 7, "carb": 1, "fat": 5},
     ]
-    # 透過數學迴圈自動擴充模擬至 5000 筆以上的豐富資料
     expanded_data = []
     for i in range(500):
         for item in data:
@@ -54,7 +53,7 @@ def load_large_food_database():
 
 food_df = load_large_food_database()
 
-# ==================== 1. 側邊欄：基本資料設定 ====================
+# ==================== 側邊欄：基本資料設定 ====================
 st.sidebar.header("🕹️ 角色數值設定面板")
 char_name = st.sidebar.text_input("角色名稱", value="小勇士")
 age = st.sidebar.number_input("年齡 (歲)", min_value=1, max_value=120, value=25)
@@ -69,38 +68,55 @@ else:
 tdee = bmr * 1.2
 bmi = weight / ((height / 100) ** 2)
 
-# ==================== 2. 儀表板顯示 ====================
-st.subheader(f"📊 【{char_name}】的科技感儀表板")
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("基礎代謝率 (BMR)", f"{bmr:.1f} 大卡")
-col2.metric("每日總消耗 (TDEE)", f"{tdee:.1f} 大卡")
+# 計算今日已攝取總熱量與熱量盈餘
+today_cal_sum = sum([item['cal'] for item in st.session_state.history])
+calorie_surplus = tdee - today_cal_sum  # 剩餘可攝取熱量
+
+# ==================== 2. 改名後的「熱量小幫手」與虛擬小人物儀表板 ====================
+st.subheader(f"📊 【{char_name}】的熱量小幫手")
+
+# 虛擬身態判定與角色頭像
+if bmi < 18.5:
+    avatar_emoji = "🏃"
+    avatar_status = "纖瘦精靈"
+elif 18.5 <= bmi < 24:
+    avatar_emoji = "🌟"
+    avatar_status = "平衡戰士"
+else:
+    avatar_emoji = "🛡️"
+    avatar_status = "坦克重裝"
+
+# 儀表板排版 (加入虛擬人物呈現)
+col_avatar, col1, col2, col3, col4 = st.columns([1.2, 1, 1, 1, 1])
+col_avatar.metric("RPG 虛擬角色", f"{avatar_emoji} {avatar_status}")
+col1.metric("基礎代謝 (BMR)", f"{bmr:.0f} kcal")
+col2.metric("每日消耗 (TDEE)", f"{tdee:.0f} kcal")
 col3.metric("目前 BMI", f"{bmi:.1f}")
-col4.metric("資料庫總筆數", f"{len(food_df):,} 筆")
+col4.metric("今日熱量盈餘", f"{calorie_surplus:.0f} kcal")
 
 st.divider()
 
-# ==================== 3. 關鍵字搜尋與熱量記錄功能 ====================
+# ==================== 3. 智能食物搜尋與三餐記錄 ====================
 st.subheader("🍱 智能食物搜尋與三餐記錄")
 
 meal_category = st.selectbox("選擇餐別", ["早餐", "午餐", "晚餐", "宵夜/其他"])
-
-# 關鍵字搜尋輸入框
 search_keyword = st.text_input("🔍 輸入食物關鍵字搜尋 (例如: 雞肉、珍奶、飯)", "")
 
-# 根據關鍵字從 5000+ 筆資料中過濾
 if search_keyword:
     filtered_df = food_df[food_df["name"].str.contains(search_keyword, case=False, na=False)]
 else:
     filtered_df = food_df
 
-# 限制預覽選項維持在 5 項左右，並將第 6 項設為「自訂食物」
-max_preview = 5
-preview_options = filtered_df["name"].head(max_preview).tolist()
-preview_options.append("✏️ 自訂食物 (手動輸入)")
+if len(filtered_df) == 0:
+    st.warning("⚠️ 找不到相關食物，您可以直接使用下方的『自訂食物』手動輸入熱量喔！")
+    preview_options = ["✏️ 自訂食物 (手動輸入)"]
+else:
+    max_preview = 5
+    preview_options = filtered_df["name"].head(max_preview).tolist()
+    preview_options.append("✏️ 自訂食物 (手動輸入)")
 
 selected_food = st.selectbox(f"符合條件的搜尋結果 (顯示前 {min(len(filtered_df), max_preview)} 項 + 自訂)", preview_options)
 
-# 帶出數值或允許手動修改
 if selected_food == "✏️ 自訂食物 (手動輸入)":
     c_cal = st.number_input("熱量 (大卡)", value=300)
     c_pro = st.number_input("蛋白質 (g)", value=10)
@@ -124,6 +140,7 @@ if st.button("➕ 確認新增紀錄"):
         "fat": c_fat
     })
     st.success(f"成功記錄！『{char_name}』的冒險日誌已更新。")
+    st.rerun()
 
 if st.session_state.history:
     st.write("### 📋 目前累積紀錄明細")
