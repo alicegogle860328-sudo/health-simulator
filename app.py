@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import datetime
+import altair as alt
 
 # 設定網頁基本排版
 st.set_page_config(page_title="身態模擬器", page_icon="🎮", layout="wide")
@@ -74,7 +75,7 @@ bmi = weight / ((height / 100) ** 2)
 today_cal_sum = sum([item['cal'] for item in st.session_state.history])
 calorie_surplus = tdee - today_cal_sum
 
-# ==================== 角色外觀與動態身態判定 (男女生各版本：瘦、正常、微肉) ====================
+# ==================== 角色外觀與動態身態判定 (男女生各版本：瘦, 正常, 微肉) ====================
 if gender == "女":
     if bmi < 18.5:
         avatar_img = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
@@ -113,8 +114,8 @@ col_m2.metric("每日消耗 (TDEE)", f"{tdee:.0f} kcal")
 col_m3.metric("目前 BMI", f"{bmi:.1f}")
 col_m4.metric("今日熱量盈餘", f"{calorie_surplus:.0f} kcal")
 
-# 角色即時遊戲化反饋對話框
-st.info(f"💬 **【RPG 角色即時旁白】** {st.session_state.last_feedback}")
+# 角色即時遊戲化反饋對話框 (已移除旁白標題字樣)
+st.info(f"💬 {st.session_state.last_feedback}")
 
 st.divider()
 
@@ -195,7 +196,18 @@ with tab2:
             df_filtered = df
 
         st.write(f"目前顯示【{filter_meal}】的熱量分佈圖：")
-        st.bar_chart(df_filtered, x="food", y="cal")
+        
+        # 透過 Altair 優化長文字排版與顯示角度，提升可讀性
+        chart_df = df_filtered.copy()
+        chart_df['short_name'] = chart_df['food'].apply(lambda x: x.split(' (')[0] if ' (' in x else x)
+        
+        chart = alt.Chart(chart_df).mark_bar(color='#ff4b4b', cornerRadiusTopLeft=4, cornerRadiusTopRight=4).encode(
+            x=alt.X('short_name:N', sort=None, title='食物名稱', axis=alt.Axis(labelAngle=-25, labelLimit=250)),
+            y=alt.Y('cal:Q', title='熱量 (大卡)'),
+            tooltip=['food', 'cal', 'pro', 'carb', 'fat']
+        ).properties(height=350)
+        
+        st.altair_chart(chart, use_container_width=True)
         
         total_cal_today = df["cal"].sum()
         st.info(f"💡 系統總結：今日累計攝取 **{total_cal_today} 大卡** (目標 TDEE：{tdee:.0f} 大卡)")
