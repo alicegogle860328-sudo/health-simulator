@@ -43,7 +43,7 @@ if 'last_feedback' not in st.session_state:
 
 st.title("🌱 身態模擬器")
 
-# ==================== 自動裁切 5 階段 RPG 角色圖片 ====================
+# ==================== 自動裁切 5 階段 RPG 角色圖片（已修正左側切邊問題） ====================
 @st.cache_data
 def load_and_crop_avatars():
     try:
@@ -57,10 +57,11 @@ def load_and_crop_avatars():
         
         for r_idx, gender in enumerate(genders):
             for c_idx in range(5):
-                left = c_idx * col_w + col_w * 0.08
-                upper = r_idx * row_h + row_h * 0.12
-                right = (c_idx + 1) * col_w - col_w * 0.08
-                lower = (r_idx + 1) * row_h - row_h * 0.05
+                # 調整裁切邊距，避免左側被切掉
+                left = c_idx * col_w + col_w * 0.02
+                upper = r_idx * row_h + row_h * 0.05
+                right = (c_idx + 1) * col_w - col_w * 0.02
+                lower = (r_idx + 1) * row_h - row_h * 0.02
                 
                 cropped = img.crop((left, upper, right, lower))
                 buffered = io.BytesIO()
@@ -96,7 +97,6 @@ TAIWAN_FOOD_DB = [
     {"name": "水餃 (Dumplings, 10顆)", "cal": 550.0, "pro": 22.0, "carb": 65.0, "fat": 22.0},
     {"name": "排骨飯 (Pork Chop Rice, 1份)", "cal": 750.0, "pro": 30.0, "carb": 85.0, "fat": 32.0},
     {"name": "雞腿飯 (Chicken Leg Rice, 1份)", "cal": 720.0, "pro": 35.0, "carb": 80.0, "fat": 28.0},
-    {"name": "牛肉麵 (Beef Noodle, 1碗)", "cal": 600.0, "pro": 30.0, "carb": 70.0, "fat": 22.0},
     {"name": "鍋貼 (Pan-fried Dumplings, 8顆)", "cal": 600.0, "pro": 18.0, "carb": 65.0, "fat": 30.0},
     {"name": "鹹酥雞 (Salt Crispy Chicken, 1份)", "cal": 550.0, "pro": 25.0, "carb": 30.0, "fat": 35.0},
     {"name": "蚵仔煎 (Oyster Omelet, 1份)", "cal": 450.0, "pro": 15.0, "carb": 50.0, "fat": 22.0},
@@ -150,7 +150,7 @@ def search_taiwan_food(keyword):
             })
     return results
 
-# ==================== 版面配置：左側基本資料與數值，右側兩倍大角色卡片 ====================
+# ==================== 版面配置：左側基本資料與數值，右側角色卡片 ====================
 col_left, col_right = st.columns([1.2, 1])
 
 with col_left:
