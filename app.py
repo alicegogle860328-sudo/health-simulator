@@ -13,7 +13,7 @@ st.set_page_config(page_title="身態模擬器", page_icon="🎮", layout="wide"
 st.markdown("""
     <style>
     .main { background-color: var(--background-color); }
-    .stMetric { background-color: var(--secondary-background-color); padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .stMetric { background-color: var(--secondary-background-color); padding: 12px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     h1, h2, h3, h4, h5, h6, p, span, label, div { color: var(--text-color) !important; }
     .rpg-card {
         background: var(--secondary-background-color);
@@ -22,6 +22,11 @@ st.markdown("""
         padding: 20px;
         box-shadow: 0 8px 16px rgba(0,0,0,0.15);
         text-align: center;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -34,9 +39,9 @@ if 'water_history' not in st.session_state:
 if 'water' not in st.session_state:
     st.session_state.water = 0
 if 'last_feedback' not in st.session_state:
-    st.session_state.last_feedback = "🎮 歡迎進入身態模擬器！請設定你的冒險數值並開始記錄健康生活吧！"
+    st.session_state.last_feedback = "🎮 歡迎進入身態模擬器！請設定你的基本資料並開始記錄健康生活吧！"
 
-st.title("🌱 身態模擬器 (RPG 養成版)")
+st.title("🌱 身態模擬器")
 
 # ==================== 自動裁切 5 階段 RPG 角色圖片 ====================
 @st.cache_data
@@ -71,6 +76,8 @@ avatars_dict = load_and_crop_avatars()
 
 # ==================== 專為台灣人設計的在地權威食物資料庫 ====================
 TAIWAN_FOOD_DB = [
+    {"name": "三明治 (Sandwich, 1份)", "cal": 320.0, "pro": 12.0, "carb": 35.0, "fat": 14.0},
+    {"name": "三杯雞 (Three-Cup Chicken, 1份)", "cal": 480.0, "pro": 32.0, "carb": 8.0, "fat": 35.0},
     {"name": "滷肉飯 (Braised Pork Rice, 1碗)", "cal": 500.0, "pro": 15.0, "carb": 65.0, "fat": 20.0},
     {"name": "珍珠奶茶 (Bubble Tea, 700ml/微糖)", "cal": 450.0, "pro": 4.0, "carb": 75.0, "fat": 15.0},
     {"name": "台式雞排 (Fried Chicken Cutlet, 1份)", "cal": 650.0, "pro": 35.0, "carb": 40.0, "fat": 42.0},
@@ -105,21 +112,20 @@ def search_taiwan_food(keyword):
             })
     return results
 
-# ==================== 版面配置：Instagram 質感人物展示與數值設定卡片 ====================
-col_main_left, col_main_right = st.columns([1.2, 1])
+# ==================== 版面配置：左側基本資料與數值，右側動態外觀角色卡片 ====================
+col_left, col_right = st.columns([1.2, 1])
 
-with col_main_right:
-    st.markdown("### 🎮 角色數值與目標設定")
-    with st.container():
-        char_name = st.text_input("角色名稱", value="小勇士")
-        col_s1, col_s2 = st.columns(2)
-        with col_s1:
-            age = st.number_input("年齡 (歲)", min_value=1, max_value=120, value=25)
-            height = st.number_input("身高 (cm)", value=150.0)
-            target_weight = st.number_input("目標體重 (kg)", value=45.0)
-        with col_s2:
-            gender = st.selectbox("性別", ["女", "男"])
-            weight = st.number_input("目前體重 (kg)", value=50.0)
+with col_left:
+    st.markdown("### 📋 基本資料")
+    char_name = st.text_input("角色名稱", value="小勇士")
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        age = st.number_input("年齡 (歲)", min_value=1, max_value=120, value=25)
+        height = st.number_input("身高 (cm)", value=150.0)
+        target_weight = st.number_input("目標體重 (kg)", value=45.0)
+    with col_s2:
+        gender = st.selectbox("性別", ["女", "男"])
+        weight = st.number_input("目前體重 (kg)", value=50.0)
 
 # 計算 BMR, TDEE, BMI
 if gender == "女":
@@ -149,25 +155,19 @@ def get_body_tier(b):
 tier_idx, body_state = get_body_tier(bmi)
 current_avatar_url = avatars_dict[gender][tier_idx]
 
-with col_main_left:
-    st.markdown("### 📸 角色動態外觀與狀態儀表板")
+with col_right:
+    st.markdown("### 🎮 角色外觀視覺展示")
     st.markdown(f"""
         <div class="rpg-card">
-            <div style="display: flex; align-items: center; justify-content: space-around;">
-                <div>
-                    <h2 style="margin:0; color:#ff4b4b;">{char_name}</h2>
-                    <p style="margin:5px 0 15px 0; font-weight:bold; font-size:16px;">狀態：{body_state}</p>
-                    <p style="margin:2px 0;">🎯 目標體重：<b>{target_weight} kg</b></p>
-                    <p style="margin:2px 0;">📊 目前 BMI：<b>{bmi:.1f}</b></p>
-                </div>
-                <div>
-                    <img src="{current_avatar_url}" width="130" style="object-fit:contain; height:150px; border-radius:10px; background: rgba(255,255,255,0.05);">
-                </div>
-            </div>
+            <img src="{current_avatar_url}" width="160" style="object-fit:contain; height:180px; border-radius:12px; background: rgba(255,255,255,0.05); margin-bottom: 10px;">
+            <h2 style="margin:0; color:#ff4b4b;">{char_name}</h2>
+            <p style="margin:5px 0 0 0; font-weight:bold; font-size:16px;">狀態：{body_state}</p>
+            <p style="margin:2px 0; font-size:14px;">🎯 目標體重：<b>{target_weight} kg</b> | 📊 目前 BMI：<b>{bmi:.1f}</b></p>
         </div>
     """, unsafe_allow_html=True)
 
 # 數據小卡列
+st.write("")
 col_m1, col_m2, col_m3, col_m4 = st.columns(4)
 col_m1.metric("基礎代謝 (BMR)", f"{bmr:.0f} kcal")
 col_m2.metric("每日消耗 (TDEE)", f"{tdee:.0f} kcal")
@@ -180,34 +180,37 @@ st.divider()
 # 分頁架構
 tab1, tab2, tab3, tab4 = st.tabs(["🍱 三餐紀錄", "📈 歷史熱量圖表", "💧 水分與日常追蹤", "🤖 我要吃嗎？"])
 
-# 統一的食物搜尋與自訂處理邏輯函式
+# 統一的關鍵字即時搜尋、自動帶入與手動調整函式
 def render_food_selector_section(unique_key_prefix):
-    st.markdown("#### 🔍 智慧食物搜尋與自訂營養素")
-    search_keyword = st.text_input("輸入中文食物關鍵字 (例如: 滷肉飯、雞排、珍奶、蘋果)", "", key=f"{unique_key_prefix}_kw")
+    st.markdown("#### 🔍 關鍵字搜尋與營養素自動帶入")
+    search_keyword = st.text_input("關鍵字搜尋 (例如輸入: 三, 雞, 蘋果)", "", key=f"{unique_key_prefix}_kw")
     
     matched_foods = search_taiwan_food(search_keyword)
-    
     options = [f["name"] for f in matched_foods]
     options.append("✏️ 自訂食物與營養素 (手動輸入)")
     
     selected_option = st.selectbox("選擇搜尋結果或常用食物", options, key=f"{unique_key_prefix}_sel")
     
     if selected_option == "✏️ 自訂食物與營養素 (手動輸入)":
-        f_name = st.text_input("輸入自訂食物名稱", value="健康自製餐點", key=f"{unique_key_prefix}_fname")
-        f_cal = st.number_input("熱量 (大卡)", value=350.0, key=f"{unique_key_prefix}_fcal")
-        f_pro = st.number_input("蛋白質 (g)", value=15.0, key=f"{unique_key_prefix}_fpro")
-        f_carb = st.number_input("碳水化合物 (g)", value=40.0, key=f"{unique_key_prefix}_fcarb")
-        f_fat = st.number_input("脂肪 (g)", value=12.0, key=f"{unique_key_prefix}_ffat")
+        default_name = "自訂健康餐點"
+        default_cal, default_pro, default_carb, default_fat = 350.0, 15.0, 40.0, 12.0
     else:
-        f_name = selected_option
         matched_item = next((f for f in matched_foods if f["name"] == selected_option), matched_foods[0])
-        f_cal = matched_item["cal"]
-        f_pro = matched_item["pro"]
-        f_carb = matched_item["carb"]
-        f_fat = matched_item["fat"]
+        default_name = matched_item["name"]
+        default_cal = matched_item["cal"]
+        default_pro = matched_item["pro"]
+        default_carb = matched_item["carb"]
+        default_fat = matched_item["fat"]
         
-        st.write(f"**營養素預覽** ➔ 熱量：**{f_cal} kcal** | 蛋白質：**{f_pro}g** | 碳水：**{f_carb}g** | 脂肪：**{f_fat}g**")
-        
+    st.markdown("##### ⚙️ 營養素數據調整 (自動帶入，亦可自由修改)")
+    f_name = st.text_input("確認食物名稱", value=default_name, key=f"{unique_key_prefix}_fname")
+    
+    c1, c2, c3, c4 = st.columns(4)
+    f_cal = c1.number_input("熱量 (kcal)", value=float(default_cal), key=f"{unique_key_prefix}_fcal")
+    f_pro = c2.number_input("蛋白質 (g)", value=float(default_pro), key=f"{unique_key_prefix}_fpro")
+    f_carb = c3.number_input("碳水 (g)", value=float(default_carb), key=f"{unique_key_prefix}_fcarb")
+    f_fat = c4.number_input("脂肪 (g)", value=float(default_fat), key=f"{unique_key_prefix}_ffat")
+    
     return f_name, f_cal, f_pro, f_carb, f_fat
 
 # 分頁一：三餐紀錄
@@ -265,7 +268,7 @@ with tab2:
         st.info(f"💡 系統總結：今日累計攝取 **{total_cal_today} 大卡** (目標 TDEE：{tdee:.0f} 大卡)")
         
         if total_cal_today > tdee:
-            st.error(f"⚠️ 【隔天超標智能提醒】注意！昨天熱量超載囉！建議今天早餐改吃水煮蛋與無糖豆漿，午餐主食減半，將熱量拉回平衡！")
+            st.error(f"⚠️ 【隔天超標智能提醒】注意！昨天熱量超標囉！建議今天早餐改吃水煮蛋與無糖豆漿，午餐主食減半，將熱量拉回平衡！")
         else:
             st.success(f"✨ 【完美狀態】『{char_name}』保持得非常棒！請繼續維持這個節奏！")
     else:
