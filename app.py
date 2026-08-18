@@ -176,7 +176,7 @@ st.divider()
 # 分頁架構
 tab1, tab2, tab3, tab4 = st.tabs(["🍱 三餐紀錄", "📈 歷史熱量圖表", "💧 水分與日常追蹤", "🤖 今天這樣吃好嗎"])
 
-# 關鍵字搜尋與自動帶入模組（已刪除範例字樣、已修正選取帶出營養素）
+# 關鍵字搜尋與自動帶入模組（已加入 st.rerun確保數值立即連動）
 def render_food_selector_section(unique_key_prefix):
     st.markdown("#### 關鍵字搜尋")
     search_keyword = st.text_input("輸入關鍵字", "", key=f"{unique_key_prefix}_kw")
@@ -207,6 +207,7 @@ def render_food_selector_section(unique_key_prefix):
         st.session_state[f"{unique_key_prefix}_fcarb"] = float(default_carb)
         st.session_state[f"{unique_key_prefix}_ffat"] = float(default_fat)
         st.session_state[prev_sel_key] = selected_option
+        st.rerun()
         
     c1, c2, c3, c4 = st.columns(4)
     f_cal = c1.number_input("熱量 (kcal)", key=f"{unique_key_prefix}_fcal")
