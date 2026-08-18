@@ -74,25 +74,64 @@ def load_and_crop_avatars():
 
 avatars_dict = load_and_crop_avatars()
 
-# ==================== 專為台灣人設計的在地權威食物資料庫 ====================
+# ==================== 擴充版：在地權威食物資料庫 ====================
 TAIWAN_FOOD_DB = [
+    # 早餐類
     {"name": "三明治 (Sandwich, 1份)", "cal": 320.0, "pro": 12.0, "carb": 35.0, "fat": 14.0},
-    {"name": "三杯雞 (Three-Cup Chicken, 1份)", "cal": 480.0, "pro": 32.0, "carb": 8.0, "fat": 35.0},
-    {"name": "滷肉飯 (Braised Pork Rice, 1碗)", "cal": 500.0, "pro": 15.0, "carb": 65.0, "fat": 20.0},
-    {"name": "珍珠奶茶 (Bubble Tea, 700ml/微糖)", "cal": 450.0, "pro": 4.0, "carb": 75.0, "fat": 15.0},
-    {"name": "台式雞排 (Fried Chicken Cutlet, 1份)", "cal": 650.0, "pro": 35.0, "carb": 40.0, "fat": 42.0},
-    {"name": "牛肉麵 (Beef Noodle Soup, 1碗)", "cal": 600.0, "pro": 28.0, "carb": 70.0, "fat": 22.0},
-    {"name": "小籠包 (Xiao Long Bao, 8顆)", "cal": 520.0, "pro": 24.0, "carb": 48.0, "fat": 26.0},
     {"name": "蛋餅 (Dan Bing, 1份)", "cal": 300.0, "pro": 10.0, "carb": 35.0, "fat": 12.0},
     {"name": "飯糰 (Taiwanese Rice Ball, 1顆)", "cal": 420.0, "pro": 12.0, "carb": 58.0, "fat": 15.0},
-    {"name": "陽春麵 (Plain Noodle Soup, 1碗)", "cal": 350.0, "pro": 10.0, "carb": 60.0, "fat": 7.0},
-    {"name": "無糖豆漿 (Soy Milk, 500ml)", "cal": 175.0, "pro": 16.0, "carb": 10.0, "fat": 7.0},
-    {"name": "水煮雞胸肉 (Chicken Breast, 100g)", "cal": 165.0, "pro": 31.0, "carb": 0.0, "fat": 3.6},
-    {"name": "蘋果 (Apple, 1顆)", "cal": 78.0, "pro": 0.4, "carb": 21.0, "fat": 0.3},
-    {"name": "白米飯 (White Rice, 1碗)", "cal": 280.0, "pro": 5.4, "carb": 61.0, "fat": 0.6},
+    {"name": "燒餅油條 (Shaobing & Youtiao, 1份)", "cal": 550.0, "pro": 12.0, "carb": 60.0, "fat": 28.0},
+    {"name": "蔥抓餅 (Scallion Pancake, 1份)", "cal": 380.0, "pro": 8.0, "carb": 48.0, "fat": 17.0},
+    {"name": "蘿蔔糕 (Radish Cake, 2片)", "cal": 210.0, "pro": 4.0, "carb": 32.0, "fat": 7.0},
+    {"name": "荷包蛋 (Fried Egg, 1顆)", "cal": 90.0, "pro": 6.5, "carb": 0.5, "fat": 7.0},
     {"name": "水煮蛋 (Boiled Egg, 1顆)", "cal": 72.0, "pro": 6.3, "carb": 0.4, "fat": 4.8},
-    {"name": "地瓜 (Sweet Potato, 1條)", "cal": 130.0, "pro": 2.2, "carb": 30.0, "fat": 0.3},
+    
+    # 正餐與小吃類
+    {"name": "三杯雞 (Three-Cup Chicken, 1份)", "cal": 480.0, "pro": 32.0, "carb": 8.0, "fat": 35.0},
+    {"name": "滷肉飯 (Braised Pork Rice, 1碗)", "cal": 500.0, "pro": 15.0, "carb": 65.0, "fat": 20.0},
+    {"name": "雞排 (Fried Chicken Cutlet, 1份)", "cal": 650.0, "pro": 35.0, "carb": 40.0, "fat": 42.0},
+    {"name": "牛肉麵 (Beef Noodle Soup, 1碗)", "cal": 600.0, "pro": 28.0, "carb": 70.0, "fat": 22.0},
+    {"name": "小籠包 (Xiao Long Bao, 8顆)", "cal": 520.0, "pro": 24.0, "carb": 48.0, "fat": 26.0},
+    {"name": "陽春麵 (Plain Noodle Soup, 1碗)", "cal": 350.0, "pro": 10.0, "carb": 60.0, "fat": 7.0},
+    {"name": "水餃 (Dumplings, 10顆)", "cal": 550.0, "pro": 22.0, "carb": 65.0, "fat": 22.0},
+    {"name": "排骨飯 (Pork Chop Rice, 1份)", "cal": 750.0, "pro": 30.0, "carb": 85.0, "fat": 32.0},
+    {"name": "雞腿飯 (Chicken Leg Rice, 1份)", "cal": 720.0, "pro": 35.0, "carb": 80.0, "fat": 28.0},
+    {"name": "牛肉麵 (Beef Noodle, 1碗)", "cal": 600.0, "pro": 30.0, "carb": 70.0, "fat": 22.0},
+    {"name": "鍋貼 (Pan-fried Dumplings, 8顆)", "cal": 600.0, "pro": 18.0, "carb": 65.0, "fat": 30.0},
     {"name": "鹹酥雞 (Salt Crispy Chicken, 1份)", "cal": 550.0, "pro": 25.0, "carb": 30.0, "fat": 35.0},
+    {"name": "蚵仔煎 (Oyster Omelet, 1份)", "cal": 450.0, "pro": 15.0, "carb": 50.0, "fat": 22.0},
+    {"name": "肉圓 (Bawwan, 1顆)", "cal": 400.0, "pro": 12.0, "carb": 55.0, "fat": 15.0},
+    {"name": "臭豆腐 (Stinky Tofu, 1份)", "cal": 420.0, "pro": 16.0, "carb": 30.0, "fat": 26.0},
+    
+    # 基礎食材與健康飲食
+    {"name": "白米飯 (White Rice, 1碗)", "cal": 280.0, "pro": 5.4, "carb": 61.0, "fat": 0.6},
+    {"name": "糙米飯 (Brown Rice, 1碗)", "cal": 250.0, "pro": 5.5, "carb": 52.0, "fat": 1.8},
+    {"name": "水煮雞胸肉 (Chicken Breast, 100g)", "cal": 165.0, "pro": 31.0, "carb": 0.0, "fat": 3.6},
+    {"name": "地瓜 (Sweet Potato, 1條)", "cal": 130.0, "pro": 2.2, "carb": 30.0, "fat": 0.3},
+    {"name": "水煮青菜 (Boiled Veggies, 1盤)", "cal": 60.0, "pro": 2.5, "carb": 10.0, "fat": 1.5},
+    {"name": "沙拉 (Vegetable Salad, 1份)", "cal": 120.0, "pro": 3.0, "carb": 15.0, "fat": 5.0},
+    {"name": "鮭魚排 (Salmon, 120g)", "cal": 250.0, "pro": 24.0, "carb": 0.0, "fat": 16.0},
+    
+    # 飲料與甜點
+    {"name": "珍珠奶茶 (Bubble Tea, 700ml/微糖)", "cal": 450.0, "pro": 4.0, "carb": 75.0, "fat": 15.0},
+    {"name": "無糖豆漿 (Soy Milk, 500ml)", "cal": 175.0, "pro": 16.0, "carb": 10.0, "fat": 7.0},
+    {"name": "鮮奶茶 (Milk Tea, 500ml)", "cal": 280.0, "pro": 8.0, "carb": 35.0, "fat": 11.0},
+    {"name": "美式咖啡 (Black Coffee, 360ml)", "cal": 15.0, "pro": 1.0, "carb": 2.0, "fat": 0.0},
+    {"name": "拿鐵 (Latte, 360ml)", "cal": 180.0, "pro": 9.0, "carb": 15.0, "fat": 9.0},
+    {"name": "豆花 (Douhua, 1碗)", "cal": 250.0, "pro": 8.0, "carb": 40.0, "fat": 6.0},
+    
+    # 水果類
+    {"name": "蘋果 (Apple, 1顆)", "cal": 78.0, "pro": 0.4, "carb": 21.0, "fat": 0.3},
+    {"name": "香蕉 (Banana, 1根)", "cal": 105.0, "pro": 1.3, "carb": 27.0, "fat": 0.3},
+    {"name": "芭樂 (Guava, 1顆)", "cal": 120.0, "pro": 2.5, "carb": 26.0, "fat": 1.0},
+    {"name": "奇異果 (Kiwi, 2顆)", "cal": 90.0, "pro": 1.6, "carb": 22.0, "fat": 0.8},
+    {"name": "木瓜 (Papaya, 1片)", "cal": 60.0, "pro": 0.8, "carb": 15.0, "fat": 0.3},
+    
+    # 速食與西式
+    {"name": "大麥克漢堡 (Big Mac, 1個)", "cal": 590.0, "pro": 26.0, "carb": 46.0, "fat": 34.0},
+    {"name": "薯條 (French Fries, 中份)", "cal": 380.0, "pro": 4.0, "carb": 48.0, "fat": 19.0},
+    {"name": "披薩 (Pizza, 1片)", "cal": 280.0, "pro": 12.0, "carb": 30.0, "fat": 12.0},
+    {"name": "義大利麵 (Pasta, 1份)", "cal": 520.0, "pro": 18.0, "carb": 70.0, "fat": 18.0},
 ]
 
 def search_taiwan_food(keyword):
@@ -176,7 +215,7 @@ st.divider()
 # 分頁架構
 tab1, tab2, tab3, tab4 = st.tabs(["🍱 三餐紀錄", "📈 歷史熱量圖表", "💧 水分與日常追蹤", "🤖 今天這樣吃好嗎"])
 
-# 關鍵字搜尋與自動帶入模組（已加入 st.rerun確保數值立即連動）
+# 關鍵字搜尋與自動帶入模組
 def render_food_selector_section(unique_key_prefix):
     st.markdown("#### 關鍵字搜尋")
     search_keyword = st.text_input("輸入關鍵字", "", key=f"{unique_key_prefix}_kw")
