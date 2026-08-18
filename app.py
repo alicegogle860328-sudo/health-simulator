@@ -154,7 +154,6 @@ tier_idx, body_state = get_body_tier(bmi)
 current_avatar_url = avatars_dict[gender][tier_idx]
 
 with col_right:
-    # 移除標題，僅呈現狀態與兩倍大人物
     st.markdown(f"""
         <div class="rpg-card">
             <img src="{current_avatar_url}" width="320" style="object-fit:contain; height:360px; border-radius:12px; background: rgba(255,255,255,0.05); margin-bottom: 10px;">
@@ -175,35 +174,45 @@ st.info(f"💬 {st.session_state.last_feedback}")
 st.divider()
 
 # 分頁架構
-tab1, tab2, tab3, tab4 = st.tabs(["🍱 三餐紀錄", "📈 歷史熱量圖表", "💧 水分與日常追蹤", "🤖 我要吃嗎？"])
+tab1, tab2, tab3, tab4 = st.tabs(["🍱 三餐紀錄", "📈 歷史熱量圖表", "💧 水分與日常追蹤", "🤖 今天這樣吃好嗎"])
 
-# 關鍵字搜尋與自動帶入模組（已移除確認食物名稱、已移除多餘標題）
+# 關鍵字搜尋與自動帶入模組（已刪除範例字樣、已修正選取帶出營養素）
 def render_food_selector_section(unique_key_prefix):
     st.markdown("#### 關鍵字搜尋")
-    search_keyword = st.text_input("輸入關鍵字 (例如: 三, 雞, 蘋果)", "", key=f"{unique_key_prefix}_kw")
+    search_keyword = st.text_input("輸入關鍵字", "", key=f"{unique_key_prefix}_kw")
     
     matched_foods = search_taiwan_food(search_keyword)
     options = [f["name"] for f in matched_foods]
     options.append("✏️ 自訂食物與營養素 (手動輸入)")
     
-    selected_option = st.selectbox("選擇搜尋結果", options, key=f"{unique_key_prefix}_sel")
+    sel_key = f"{unique_key_prefix}_sel"
+    prev_sel_key = f"{unique_key_prefix}_prev_sel"
+    
+    selected_option = st.selectbox("選擇搜尋結果", options, key=sel_key)
     
     if selected_option == "✏️ 自訂食物與營養素 (手動輸入)":
         f_name = "自訂健康餐點"
         default_cal, default_pro, default_carb, default_fat = 350.0, 15.0, 40.0, 12.0
     else:
-        matched_item = next((f for f in matched_foods if f["name"] == selected_option), matched_foods[0])
+        matched_item = next((f for f in matched_foods if f["name"] == selected_option), matched_foods[0] if matched_foods else {"name": "自訂", "cal": 350.0, "pro": 15.0, "carb": 40.0, "fat": 12.0})
         f_name = matched_item["name"]
         default_cal = matched_item["cal"]
         default_pro = matched_item["pro"]
         default_carb = matched_item["carb"]
         default_fat = matched_item["fat"]
         
+    if prev_sel_key not in st.session_state or st.session_state[prev_sel_key] != selected_option:
+        st.session_state[f"{unique_key_prefix}_fcal"] = float(default_cal)
+        st.session_state[f"{unique_key_prefix}_fpro"] = float(default_pro)
+        st.session_state[f"{unique_key_prefix}_fcarb"] = float(default_carb)
+        st.session_state[f"{unique_key_prefix}_ffat"] = float(default_fat)
+        st.session_state[prev_sel_key] = selected_option
+        
     c1, c2, c3, c4 = st.columns(4)
-    f_cal = c1.number_input("熱量 (kcal)", value=float(default_cal), key=f"{unique_key_prefix}_fcal")
-    f_pro = c2.number_input("蛋白質 (g)", value=float(default_pro), key=f"{unique_key_prefix}_fpro")
-    f_carb = c3.number_input("碳水 (g)", value=float(default_carb), key=f"{unique_key_prefix}_fcarb")
-    f_fat = c4.number_input("脂肪 (g)", value=float(default_fat), key=f"{unique_key_prefix}_ffat")
+    f_cal = c1.number_input("熱量 (kcal)", key=f"{unique_key_prefix}_fcal")
+    f_pro = c2.number_input("蛋白質 (g)", key=f"{unique_key_prefix}_fpro")
+    f_carb = c3.number_input("碳水 (g)", key=f"{unique_key_prefix}_fcarb")
+    f_fat = c4.number_input("脂肪 (g)", key=f"{unique_key_prefix}_ffat")
     
     return f_name, f_cal, f_pro, f_carb, f_fat
 
@@ -303,25 +312,41 @@ with tab3:
     else:
         st.info("目前尚無飲水紀錄，點擊上方按鈕開始記錄水分吧！")
 
-# 分頁四：我要吃嗎？
+# 分頁四：今天這樣吃好嗎
 with tab4:
-    st.subheader("🤖 我要吃嗎？ (AI 營養顧問與身型預測模擬)")
-    st.info(f"💡 目標體重：**{target_weight} kg**。輸入你想吃的食物，AI 顧問會進行營養分析與動態外觀模擬！")
+    st.subheader("🤖 今天這樣吃好嗎")
+    st.info(f"💡 請分別輸入早餐、午餐、晚餐吃了什麼，系統將自動計算全天總熱量與營養素是否超過，並給予建議與模擬報告！")
     
-    ai_food_name, ai_cal, ai_pro, ai_carb, ai_fat = render_food_selector_section("tab4")
+    st.markdown("---")
+    st.markdown("#### 🍳 早餐：吃了甚麼")
+    bf_name, bf_cal, bf_pro, bf_carb, bf_fat = render_food_selector_section("tab4_breakfast")
+    
+    st.markdown("---")
+    st.markdown("#### 🍱 午餐：吃了甚麼")
+    lu_name, lu_cal, lu_pro, lu_carb, lu_fat = render_food_selector_section("tab4_lunch")
+    
+    st.markdown("---")
+    st.markdown("#### 🍲 晚餐：吃了甚麼")
+    di_name, di_cal, di_pro, di_carb, di_fat = render_food_selector_section("tab4_dinner")
+    
+    total_day_cal = bf_cal + lu_cal + di_cal
+    total_day_pro = bf_pro + lu_pro + di_pro
+    total_day_carb = bf_carb + lu_carb + di_carb
+    total_day_fat = bf_fat + lu_fat + di_fat
+    
+    st.markdown("---")
+    st.markdown("#### 📊 全天總計欄位")
+    c_t1, c_t2, c_t3, c_t4 = st.columns(4)
+    c_t1.metric("總熱量", f"{total_day_cal:.0f} kcal")
+    c_t2.metric("總蛋白質", f"{total_day_pro:.1f} g")
+    c_t3.metric("總碳水", f"{total_day_carb:.1f} g")
+    c_t4.metric("總脂肪", f"{total_day_fat:.1f} g")
 
-    if st.button("🚀 啟動 AI 營養顧問與外觀模擬", type="primary"):
+    if st.button("🚀 啟動模擬分析與建議", type="primary"):
         st.write("---")
-        st.markdown(f"### 🛡️ 【{char_name}】的 AI 決策分析與外觀模擬報告")
+        st.markdown(f"### 🛡️ 【{char_name}】的 模擬分析")
         
-        st.markdown("#### 1️⃣ 營養素剖析 (Nutrient Breakdown)")
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("預估熱量", f"{ai_cal:.0f} kcal")
-        c2.metric("蛋白質", f"{ai_pro:.1f} g")
-        c3.metric("碳水化合物", f"{ai_carb:.1f} g")
-        c4.metric("脂肪", f"{ai_fat:.1f} g")
-        
-        projected_remaining = calorie_remaining - ai_cal
+        projected_remaining = tdee - total_day_cal
         simulated_weight = weight + (max(0, -projected_remaining) / 7700 * 5)
         simulated_bmi = simulated_weight / ((height / 100) ** 2)
         simulated_tier, simulated_body_state = get_body_tier(simulated_bmi)
@@ -332,12 +357,12 @@ with tab4:
             
         simulated_avatar_url = avatars_dict[gender][simulated_tier]
 
-        st.markdown("#### 2️⃣ 角色外觀視覺模擬對比 (Before vs After)")
+        st.markdown("#### Before vs After")
         col_img1, col_img2 = st.columns(2)
         with col_img1:
             st.markdown(f"""
                 <div style="background:var(--secondary-background-color); padding:15px; border-radius:12px; text-align:center; border: 2px solid #3498db;">
-                    <p style="font-weight:bold; font-size:15px; margin-bottom:8px;">🔵 目前角色外觀</p>
+                    <p style="font-weight:bold; font-size:15px; margin-bottom:8px;">Before</p>
                     <img src="{current_avatar_url}" width="200" style="object-fit:contain; height:220px; margin-bottom:8px;">
                     <p style="margin:0; font-size:14px; font-weight:bold;">{body_state}</p>
                 </div>
@@ -345,29 +370,16 @@ with tab4:
         with col_img2:
             st.markdown(f"""
                 <div style="background:var(--secondary-background-color); padding:15px; border-radius:12px; text-align:center; border: 2px solid #e74c3c;">
-                    <p style="font-weight:bold; font-size:15px; margin-bottom:8px;">🔴 享用後的預估外觀</p>
+                    <p style="font-weight:bold; font-size:15px; margin-bottom:8px;">After</p>
                     <img src="{simulated_avatar_url}" width="200" style="object-fit:contain; height:220px; margin-bottom:8px;">
                     <p style="margin:0; font-size:14px; font-weight:bold;">{simulated_body_state}</p>
                 </div>
             """, unsafe_allow_html=True)
                 
-        st.markdown("#### 3️⃣ AI 決策建議 (Should you eat it?)")
+        st.markdown("#### 小建議")
         if projected_remaining >= 150:
-            st.success("🌟 **AI 建議：可以安心食用！** 你的熱量扣打相當充裕，這份食物不會妨礙你的目標體重進度，外觀保持完美！")
+            st.success("🌟 你的熱量扣打相當充裕，今天這樣吃非常完美，完全符合目標體重進度，外觀保持極佳！")
         elif projected_remaining >= 0:
-            st.warning("⚠️ **AI 建議：可以吃，但請注意份量！** 吃了會剛好達到今日 TDEE 邊界。建議吃一半或分給朋友共食，以維持體態。")
+            st.warning("⚠️ 今天的熱量剛好達到 TDEE 邊界。建議稍微控制宵夜或增加一點日常活動量，以維持完美體態。")
         else:
-            st.error(f"🚨 **AI 建議：強烈建議忍痛放棄或嚴格減半！** 吃了將會導致今日熱量超標約 **{abs(projected_remaining):.0f} kcal**，體態將往右側肥胖等級邁進！")
-            
-        st.markdown("#### 4️⃣ 💡 吃了之後的補救與行動計畫 (Post-meal Action Plan)")
-        if projected_remaining < 0:
-            st.info("""
-            * **運動代償：** 建議飯後進行 45 分鐘至 1 小時的有氧運動（如慢跑或快走）來燃燒多餘熱量。
-            * **水分加速代謝：** 接下來請多補充 500 c.c. 至 800 c.c. 的水分，幫助身體代謝廢物。
-            * **隔日微調：** 若真的吃完超標，明天早餐改為無糖豆漿與水煮蛋，將熱量平均拉回平衡！
-            """)
-        else:
-            st.info("""
-            * **維持節奏：** 保持目前的飲食與喝水節奏，記得今天的水分目標要喝夠喔！
-            * **營養平衡：** 下一餐可以多攝取一些膳食纖維，讓營養更全面。
-            """)
+            st.error(f"🚨 今天這樣吃將導致熱量超標約 **{abs(projected_remaining):.0f} kcal**！建議減少其中一餐的份量或增加有氧運動來平衡！")
