@@ -29,17 +29,14 @@ if 'water' not in st.session_state:
 if 'last_feedback' not in st.session_state:
     st.session_state.last_feedback = "🎮 歡迎進入身態模擬器！請設定數值並開始你的健康冒險吧！"
 
-st.title("🌱 身態模擬器 (5 階段 RPG 成長版)")
+st.title("🌱 身態模擬器")
 
 # ==================== 自動裁切 5 階段 RPG 角色圖片 ====================
 @st.cache_data
 def load_and_crop_avatars():
     try:
-        # 讀取同資料夾中的 rpg_chars.png
         img = Image.open("rpg_chars.png")
         w, h = img.size
-        
-        # 圖片結構：2行 (女, 男)，5列 (很瘦, 瘦, 正常, 胖, 超胖)
         row_h = h / 2.0
         col_w = w / 5.0
         
@@ -48,7 +45,6 @@ def load_and_crop_avatars():
         
         for r_idx, gender in enumerate(genders):
             for c_idx in range(5):
-                # 邊界微調以避開文字框
                 left = c_idx * col_w + col_w * 0.08
                 upper = r_idx * row_h + row_h * 0.12
                 right = (c_idx + 1) * col_w - col_w * 0.08
@@ -61,7 +57,6 @@ def load_and_crop_avatars():
                 avatars[gender].append(f"data:image/png;base64,{img_str}")
         return avatars
     except Exception:
-        # 若找不到圖片時的預設備用圖
         fallback = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
         return {"女": [fallback]*5, "男": [fallback]*5}
 
@@ -100,6 +95,15 @@ def fetch_real_food_data(keyword):
         pass
     return pd.DataFrame()
 
+# 常見預設 5 個食物清單
+COMMON_DEFAULTS = [
+    {"name": "蘋果 (Apple, 100g)", "cal": 52.0, "pro": 0.3, "carb": 14.0, "fat": 0.2},
+    {"name": "水煮雞胸肉 (Chicken Breast, 100g)", "cal": 165.0, "pro": 31.0, "carb": 0.0, "fat": 3.6},
+    {"name": "白米飯 (White Rice, 100g)", "cal": 130.0, "pro": 2.7, "carb": 28.0, "fat": 0.3},
+    {"name": "鮮奶 (Milk, 100ml)", "cal": 60.0, "pro": 3.2, "carb": 4.8, "fat": 3.6},
+    {"name": "雞蛋 (Egg, 1顆/50g)", "cal": 72.0, "pro": 6.3, "carb": 0.4, "fat": 4.8}
+]
+
 # ==================== 側邊欄：角色數值與目標設定 ====================
 st.sidebar.header("🕹️ 角色數值與目標設定")
 char_name = st.sidebar.text_input("角色名稱", value="小勇士")
@@ -120,7 +124,6 @@ recommended_water = max(1500, weight * 35 + (height - 150) * 3)
 
 today_cal_sum = sum([item['cal'] for item in st.session_state.history])
 calorie_remaining = tdee - today_cal_sum
-weight_diff = weight - target_weight
 
 # 5 階段外觀對應邏輯 (0:很瘦, 1:瘦, 2:正常, 3:胖, 4:超胖)
 def get_body_tier(b):
@@ -158,44 +161,59 @@ st.info(f"💬 {st.session_state.last_feedback}")
 st.divider()
 
 # 分頁架構
-tab1, tab2, tab3, tab4 = st.tabs(["🍱 智能食物搜尋與三餐記錄", "📈 歷史熱量圖表", "💧 水分與日常追蹤", "🤖 AI 營養顧問 (我要吃嗎？)"])
+tab1, tab2, tab3, tab4 = st.tabs(["🍱 三餐紀錄", "📈 歷史熱量圖表", "💧 水分與日常追蹤", "🤖 我要吃嗎？"])
 
-# 分頁一：食物搜尋與記錄
+# 分頁一：三餐紀錄
 with tab1:
-    st.subheader("📝 三餐與營養素記錄 (串接全球真實食物資料庫)")
-    meal_category = st.selectbox("選擇餐別", ["早餐", "午餐", "晚餐", "宵夜/其他"])
-    search_keyword = st.text_input("🔍 輸入關鍵字搜尋真實食物 (例如: apple, chicken, rice, milk)", "")
+    st.subheader("📝 三餐與營養素記錄")
+    meal_category = st.selectbox("選擇餐別", ["早餐", "午餐", "晚餐", "宵夜/อื่น"])
+    search_keyword = st.text_input("輸入關鍵字", "")
     
     real_food_df = fetch_real_food_data(search_keyword)
 
-    if search_keyword and real_food_df.empty:
-        st.warning("⚠️ 在全球資料庫中找不到該食物，您可以直接使用下方的『自訂食物』手動輸入！")
-        preview_options = ["✏️ 自訂食物 (手動輸入)"]
-    elif real_food_df.empty:
-        preview_options = ["✏️ 自訂食物 (手動輸入)"]
-    else:
-        preview_options = real_food_df["name"].tolist()
-        preview_options.append("✏️ 自訂食物 (手動輸入)")
+    preview_options = []
+    for d in COMMON_DEFAULTS:
+        preview_options.append(d["name"])
 
-    selected_food = st.selectbox("選擇搜尋結果或自訂", preview_options)
+    if not real_food_df.empty:
+        for n in real_food_df["name"].tolist():
+            if n not in preview_options:
+                preview_options.append(n)
+    
+    preview_options.append("✏️ 自訂食物 (手動輸入)")
+
+    selected_food = st.selectbox("選擇搜尋結果或常用食物", preview_options)
 
     if selected_food == "✏️ 自訂食物 (手動輸入)":
-        c_cal = st.number_input("熱量 (大卡)", value=300)
-        c_pro = st.number_input("蛋白質 (g)", value=10)
-        c_carb = st.number_input("碳水化合物 (g)", value=30)
-        c_fat = st.number_input("脂肪 (g)", value=10)
+        actual_food_name = st.text_input("輸入自訂食物名稱", value="健康自製餐點")
+        c_cal = st.number_input("熱量 (大卡)", value=300.0)
+        c_pro = st.number_input("蛋白質 (g)", value=10.0)
+        c_carb = st.number_input("碳水化合物 (g)", value=30.0)
+        c_fat = st.number_input("脂肪 (g)", value=10.0)
     else:
-        matched_row = real_food_df[real_food_df["name"] == selected_food].iloc[0]
-        c_cal = st.number_input("熱量 (大卡)", value=float(matched_row["cal"]))
-        c_pro = st.number_input("蛋白質 (g)", value=float(matched_row["pro"]))
-        c_carb = st.number_input("碳水化合物 (g)", value=float(matched_row["carb"]))
-        c_fat = st.number_input("脂肪 (g)", value=float(matched_row["fat"]))
+        actual_food_name = selected_food
+        default_match = next((d for d in COMMON_DEFAULTS if d["name"] == selected_food), None)
+        if default_match:
+            c_cal = default_match["cal"]
+            c_pro = default_match["pro"]
+            c_carb = default_match["carb"]
+            c_fat = default_match["fat"]
+        elif not real_food_df.empty and selected_food in real_food_df["name"].values:
+            matched_row = real_food_df[real_food_df["name"] == selected_food].iloc[0]
+            c_cal = float(matched_row["cal"])
+            c_pro = float(matched_row["pro"])
+            c_carb = float(matched_row["carb"])
+            c_fat = float(matched_row["fat"])
+        else:
+            c_cal, c_pro, c_carb, c_fat = 300.0, 10.0, 30.0, 10.0
+
+        st.write(f"**已選食物營養素預覽**：熱量 {c_cal} kcal | 蛋白質 {c_pro}g | 碳水 {c_carb}g | 脂肪 {c_fat}g")
 
     if st.button("➕ 確認新增紀錄"):
         st.session_state.history.append({
             "date": str(datetime.date.today()),
             "meal": meal_category,
-            "food": selected_food,
+            "food": actual_food_name,
             "cal": c_cal,
             "pro": c_pro,
             "carb": c_carb,
@@ -227,10 +245,9 @@ with tab2:
 
         st.write(f"目前顯示【{filter_meal}】的熱量分佈圖：")
         chart_df = df_filtered.copy()
-        chart_df['short_name'] = chart_df['food'].apply(lambda x: x.split(' (')[0] if ' (' in x else x)
         
         chart = alt.Chart(chart_df).mark_bar(color='#ff4b4b', cornerRadiusTopLeft=4, cornerRadiusTopRight=4).encode(
-            x=alt.X('short_name:N', sort=None, title='食物名稱', axis=alt.Axis(labelAngle=-25, labelLimit=250)),
+            x=alt.X('food:N', sort=None, title='食物名稱', axis=alt.Axis(labelAngle=-25, labelLimit=250)),
             y=alt.Y('cal:Q', title='熱量 (大卡)', axis=alt.Axis(titleAngle=0, titleAnchor='end', titleY=-10)),
             tooltip=['food', 'cal', 'pro', 'carb', 'fat']
         ).properties(height=350)
@@ -245,7 +262,7 @@ with tab2:
         else:
             st.success(f"✨ 【完美狀態】『{char_name}』保持得非常棒！熱量控制在安全範圍內，請繼續維持這個節奏！")
     else:
-        st.info("目前還沒有資料，請先至『智能食物搜尋與三餐記錄』分頁新增食物！")
+        st.info("目前還沒有資料，請先至『三餐紀錄』分頁新增食物！")
 
 # 分頁三：水分與日常追蹤
 with tab3:
@@ -282,35 +299,45 @@ with tab3:
     else:
         st.info("目前尚無飲水紀錄，點擊上方按鈕開始記錄水分吧！")
 
-# --------- 分頁四：AI 營養顧問與角色視覺化模擬 ---------
+# --------- 分頁四：我要吃嗎？ ---------
 with tab4:
-    st.subheader("🤖 AI 營養顧問與身型預測模擬 (我要吃嗎？)")
-    st.info(f"💡 目標體重：**{target_weight} kg**。輸入你想吃的食物，AI 顧問不僅會進行營養分析，還會**動態模擬**吃完後的角色外觀變化！")
+    st.subheader("🤖 我要吃嗎？ (AI 營養顧問與身型預測模擬)")
+    st.info(f"💡 目標體重：**{target_weight} kg**。輸入你想吃的食物，AI 顧問會進行營養分析與動態外觀模擬！")
     
-    ai_keyword = st.text_input("🔍 輸入想評估的食物名稱 (例如: chicken cutlet, boba tea, cake)", "")
+    ai_keyword = st.text_input("輸入關鍵字進行評估搜尋", "")
     ai_food_df = fetch_real_food_data(ai_keyword)
 
-    if ai_keyword and not ai_food_df.empty:
-        ai_options = ai_food_df["name"].tolist()
-        ai_options.append("✏️ 自訂營養素評估")
-        selected_ai_food = st.selectbox("選擇評估項目", ai_options)
-        
-        if selected_ai_food == "✏️ 自訂營養素評估":
-            ai_cal = st.number_input("熱量 (大卡)", value=550)
-            ai_pro = st.number_input("蛋白質 (g)", value=25)
-            ai_carb = st.number_input("碳水化合物 (g)", value=45)
-            ai_fat = st.number_input("脂肪 (g)", value=30)
-        else:
-            match_row = ai_food_df[ai_food_df["name"] == selected_ai_food].iloc[0]
-            ai_cal = st.number_input("熱量 (大卡)", value=float(match_row["cal"]))
-            ai_pro = st.number_input("蛋白質 (g)", value=float(match_row["pro"]))
-            ai_carb = st.number_input("碳水化合物 (g)", value=float(match_row["carb"]))
-            ai_fat = st.number_input("脂肪 (g)", value=float(match_row["fat"]))
+    ai_options = []
+    for d in COMMON_DEFAULTS:
+        ai_options.append(d["name"])
+    if not ai_food_df.empty:
+        for n in ai_food_df["name"].tolist():
+            if n not in ai_options:
+                ai_options.append(n)
+    ai_options.append("✏️ 自訂營養素評估")
+
+    selected_ai_food = st.selectbox("選擇評估項目或常用食物", ai_options)
+
+    if selected_ai_food == "✏️ 自訂營養素評估":
+        ai_cal = st.number_input("熱量 (大卡)", value=550.0)
+        ai_pro = st.number_input("蛋白質 (g)", value=25.0)
+        ai_carb = st.number_input("碳水化合物 (g)", value=45.0)
+        ai_fat = st.number_input("脂肪 (g)", value=30.0)
     else:
-        ai_cal = st.number_input("熱量 (大卡)", value=600)
-        ai_pro = st.number_input("蛋白質 (g)", value=30)
-        ai_carb = st.number_input("碳水化合物 (g)", value=40)
-        ai_fat = st.number_input("脂肪 (g)", value=35)
+        default_match = next((d for d in COMMON_DEFAULTS if d["name"] == selected_ai_food), None)
+        if default_match:
+            ai_cal = default_match["cal"]
+            ai_pro = default_match["pro"]
+            ai_carb = default_match["carb"]
+            ai_fat = default_match["fat"]
+        elif not ai_food_df.empty and selected_ai_food in ai_food_df["name"].values:
+            match_row = ai_food_df[ai_food_df["name"] == selected_ai_food].iloc[0]
+            ai_cal = float(match_row["cal"])
+            ai_pro = float(match_row["pro"])
+            ai_carb = float(match_row["carb"])
+            ai_fat = float(match_row["fat"])
+        else:
+            ai_cal, ai_pro, ai_carb, ai_fat = 600.0, 30.0, 40.0, 35.0
 
     if st.button("🚀 啟動 AI 營養顧問與外觀模擬"):
         st.write("---")
@@ -327,12 +354,10 @@ with tab4:
         # 2. 模擬吃完後的體態變化
         projected_remaining = calorie_remaining - ai_cal
         
-        # 計算食用後的預估體重與 BMI 變化（假設長期累積或單日過量產生的視覺變化模擬）
-        simulated_weight = weight + (max(0, -projected_remaining) / 7700 * 5)  # 趣味視覺模擬加權
+        simulated_weight = weight + (max(0, -projected_remaining) / 7700 * 5)
         simulated_bmi = simulated_weight / ((height / 100) ** 2)
         simulated_tier, simulated_body_state = get_body_tier(simulated_bmi)
         
-        # 若熱量超標，讓預估外觀至少比原本胖一階 (上限第 4 階超胖)
         if projected_remaining < 0:
             simulated_tier = min(4, max(tier_idx + 1, simulated_tier))
             simulated_body_state += " (⚠️ 熱量超載警戒)"
@@ -357,7 +382,7 @@ with tab4:
                     <p style="margin:0; font-size:14px; font-weight:bold;">{simulated_body_state}</p>
                 </div>
             """, unsafe_allow_html=True)
-            
+                
         # 3. 該不該吃決策
         st.markdown("#### 3️⃣ AI 決策建議 (Should you eat it?)")
         if projected_remaining >= 150:
@@ -367,7 +392,7 @@ with tab4:
         else:
             st.error(f"🚨 **AI 建議：強烈建議忍痛放棄或嚴格減半！** 吃了將會導致今日熱量超標約 **{abs(projected_remaining):.0f} kcal**，體態將往右側肥胖等級邁進！")
             
-        # 4. 吃了之後怎麼辦 (Action Plan)
+        # 4. 吃了之後怎麼辦
         st.markdown("#### 4️⃣ 💡 吃了之後的補救與行動計畫 (Post-meal Action Plan)")
         if projected_remaining < 0:
             st.info("""
